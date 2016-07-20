@@ -5,6 +5,7 @@
   "version": "0.0.1",
   "dependencies": {
     "dotenv": "^2.0.0",
-    "node-slackbot": "0.0.6"
-   }
+    "node-slackbot": "0.0.6",
+    "twit": "^2.2.4"
+  }
 }
