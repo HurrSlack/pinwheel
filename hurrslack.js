@@ -1,5 +1,6 @@
 var Twit = require('twit');
 var path = require('path');
+var slackbot = require('node-slackbot');
 require('dotenv').config({
 	path: path.resolve('./env_variables')
 });
@@ -11,11 +12,7 @@ var T = new Twit({
 	access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
 });
 
-var SLACK_TOKEN = process.env.SLACK_TOKEN;
-
-var slackbot = require('node-slackbot');
-var bot = new slackbot(SLACK_TOKEN);
-
+var bot = new slackbot(process.env.SLACK_TOKEN);
 
 bot.use(
 	function(message, cb) {
@@ -27,7 +24,7 @@ bot.use(
 					if (err) {
 						console.error(err);
 					} else {
-						console.log('twote "' + text + '", received: ', data,);
+						console.log('twote "' + text + '", received: ', data);
 					}
 			});
 		}
@@ -36,3 +33,4 @@ bot.use(
 
 
 bot.connect();
+console.log('listening...')
