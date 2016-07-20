@@ -1,10 +1,10 @@
 {
   "author": "Hurr Slack",
-  "name": "Hurr Slack",
-  "description": "Post pinned tweets to twitter",
+  "name": "HurrSlack",
+  "description": "Post pinned tweets to slack",
   "version": "0.0.1",
   "dependencies": {
     "dotenv": "^2.0.0",
-    "node-slackbot": "0.0.6",
-  }
+    "node-slackbot": "0.0.6"
+   }
 }

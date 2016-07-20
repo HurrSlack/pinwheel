@@ -10,10 +10,12 @@ var slackbot = require('node-slackbot');
 var bot = new slackbot(SLACK_TOKEN);
 
 
-bot.use(function (message, cb) {
-    if ('pin_added' == message.type) {
-
-      
+bot.use(
+	function (message, cb) {
+	    if ('pin_added' == message.type) {
+			console.log("you pinned a message;");	
+		}
 });
+
 
 bot.connect();
