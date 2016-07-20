@@ -11,7 +11,7 @@ var bot = new slackbot(SLACK_TOKEN);
 
 
 bot.use(function (message, cb) {
-    if ('message' == message.type && message.text) {
+    if ('pin_added' == message.type) {
 
       
 });
