@@ -51,8 +51,8 @@ function createSlackImage(canvas, text) {
     var Image = Canvas.Image
     , ctx = canvas.getContext('2d');
 
-  	ctx.font = '12px Slack-Lato';
-	var image = ctx.fillText(text, 10, 10);
+  	ctx.font = '24px Slack-Lato';
+	var image = ctx.fillText(text, 20, 25);
 }
 
 bot.use(
@@ -65,7 +65,7 @@ bot.use(
 		} else if (text && text.length > 140) {
 			console.log("generating tweet for text > 140 characters");
 			var trimmedText = text.substring(0,110) + "…";
-			var canvas = new Canvas(440, 200);
+			var canvas = new Canvas(880, 400);
 			createSlackImage(canvas, text);
 			var imageData =  canvas.toDataURL('image/png'); 
 			imageData = imageData.split(",")[1];
