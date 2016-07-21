@@ -17,11 +17,7 @@ var T = new Twit({
 var bot = new slackbot(process.env.SLACK_TOKEN);
 
 var Canvas = require('canvas')
-  , Image = Canvas.Image
-  , canvas = new Canvas(440, 200)
-  , ctx = canvas.getContext('2d');
-
-ctx.font = '12px Slack-Lato';
+ 
 
 function postTweet(text) {
 	T.post('statuses/update', { status: text }, (err, data, res) => {
@@ -33,19 +29,15 @@ function postTweet(text) {
 	});
 }
 
-function postTweetAndImage(image, text, trimmedText){
+function postTweetAndImage(image, trimmedText){
 	console.log(image);
 	T.post('media/upload', { media_data: image }, function (err, data, response) {
-	  // now we can assign alt text to the media, for use by screen readers and
-	  // other text-based presentations and interpreters
 	  var mediaIdStr = data.media_id_string
-	  var altText = trimmedText
-	  var meta_params = { media_id: mediaIdStr, alt_text: { text: altText } }
+	  var meta_params = { media_id: mediaIdStr, alt_text: { text: trimmedText } }
 
 	  T.post('media/metadata/create', meta_params, function (err, data, response) {
 	    if (!err) {
-	      // now we can reference the media and post a tweet (media will attach to the tweet)
-	      var params = { status: trimmedText, media_ids: [mediaIdStr] }
+			var params = { status: trimmedText, media_ids: [mediaIdStr] }
 
 	      T.post('statuses/update', params, function (err, data, response) {
 	        console.log(data)
@@ -53,6 +45,14 @@ function postTweetAndImage(image, text, trimmedText){
 	    }
 	  })
 	})
+}
+
+function createSlackImage(canvas, text) {
+    var Image = Canvas.Image
+    , ctx = canvas.getContext('2d');
+
+  	ctx.font = '12px Slack-Lato';
+	var image = ctx.fillText(text, 10, 10);
 }
 
 bot.use(
@@ -65,10 +65,11 @@ bot.use(
 		} else if (text && text.length > 140) {
 			console.log("generating tweet for text > 140 characters");
 			var trimmedText = text.substring(0,110) + "…";
-			var image = ctx.fillText(text, 10, 10);
+			var canvas = new Canvas(440, 200);
+			createSlackImage(canvas, text);
 			var imageData =  canvas.toDataURL('image/png'); 
 			imageData = imageData.split(",")[1];
-			postTweetAndImage(imageData, text, trimmedText);
+			postTweetAndImage(imageData, trimmedText);
 		}
 	}
 });
