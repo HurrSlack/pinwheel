@@ -4,6 +4,7 @@
   "description": "Post pinned tweets to slack",
   "version": "0.0.1",
   "dependencies": {
+    "canvas": "^1.4.0",
     "dotenv": "^2.0.0",
     "node-slackbot": "0.0.6",
     "twit": "^2.2.4"
