@@ -19,32 +19,6 @@ var bot = new slackbot(process.env.SLACK_TOKEN);
 var Canvas = require('canvas')
 var CanvasTextWrapper = require('canvas-text-wrapper').CanvasTextWrapper;
 
-// tests
-var text = "You'd take the clothes off my back and I'd let you You'd steal the food right out my mouth and I'd watch you eat it I still don’t know why, why our love is so much, ohh (Thanks for warnin' me, thanks for warnin' me) You curse my name, in spite, to put me to shame Hang my laundry in the streets, dirty or clean, give it up for fame But I still don't know why, why I love it so much (Thanks for warnin' me, thanks for warnin' me)";
- 
-var trimmedText = text.substring(0,110) + "…";
-var canvas = new Canvas(880, 400);
-createSlackImage(canvas, text);
-
-var imageData =  canvas.toDataURL('image/png'); 
-
-var fs = require('fs')
-  , out = fs.createWriteStream(__dirname + '/text.png')
-  , stream = canvas.pngStream();
-
-stream.on('data', function(chunk){
-  out.write(chunk);
-});
-
-stream.on('end', function(){
-  console.log('saved png');
-});
-
-
-
-// end tests
-
-
 function postTweet(text) {
 	T.post('statuses/update', { status: text }, (err, data, res) => {
 			if (err) {
@@ -56,7 +30,6 @@ function postTweet(text) {
 }
 
 function postTweetAndImage(image, trimmedText){
-	console.log(image);
 	T.post('media/upload', { media_data: image }, function (err, data, response) {
 	  var mediaIdStr = data.media_id_string
 	  var meta_params = { media_id: mediaIdStr, alt_text: { text: trimmedText } }
@@ -73,29 +46,56 @@ function postTweetAndImage(image, trimmedText){
 	})
 }
 
-function createSlackImage(canvas, text) {
+function createSlackImage(canvas, text, time) {
     var Image = Canvas.Image
     , ctx = canvas.getContext('2d');
-
-	var options = { 
-        font: "24px Arial, sans-serif",
-        lineHeight: 1,
-        textAlign: "left",
-        verticalAlign: "top",
-        paddingX: 0,
-        paddingY: 0,
-        fitParent: false,
-        lineBreak: "auto",
-        sizeToFill: false,
-        allowNewLine: true,
-        justifyLines: false,
-        strokeText: false,
-        renderHDPI: true,
-        textDecoration: "none"
-    }
 	
-	CanvasTextWrapper(canvas, text, options);
+	var time = "4:20PM";
+	
+	ctx.fillStyle = 'white'; // background color
+	ctx.fillRect(0,0,canvas.width,canvas.height);
 
+	ctx.fillStyle= '#2c2d30'; // stroke color
+	
+	ctx.beginPath();
+	ctx.moveTo(30, 30);
+	ctx.lineTo(90, 30);
+	ctx.quadraticCurveTo(100, 30, 100, 40);
+	ctx.lineTo(100, 100);
+	ctx.quadraticCurveTo(100, 110, 90, 110);
+	ctx.lineTo(30, 110);
+	ctx.quadraticCurveTo(20, 110, 20, 100);
+	ctx.lineTo(20, 40);
+	ctx.quadraticCurveTo(20, 30, 30, 30);
+	ctx.stroke();
+	
+	ctx.fillStyle= '#2c2d30'; // text color	
+	var options = { 
+        font: "bold 24px Arial", //Lato
+        lineHeight: 1.375,
+        paddingX: 120,
+        paddingY: 20,
+	}
+	CanvasTextWrapper(canvas, "Hurr Slack", options);
+	
+	ctx.fillStyle= '#9e9ea6'; // text color	
+	options = { 
+        font: "15px Arial", //Lato
+        lineHeight: 1.375,
+        paddingX: 250,
+        paddingY: 30,
+	}
+	CanvasTextWrapper(canvas, time, options);
+	
+	
+	ctx.fillStyle= '#2c2d30'; // text color	
+	options = { 
+        font: "24px Arial", //Lato
+        lineHeight: 1.375,
+        paddingX: 120,
+        paddingY: 55
+	}
+	CanvasTextWrapper(canvas, text, options);
 }
 
 bot.use(
