@@ -1,9 +1,10 @@
 var Twit = require('twit');
 var path = require('path');
 var slackbot = require('node-slackbot');
-// require('dotenv').config({
-// 	path: path.resolve('./env_variables')
-// });
+require('dotenv').config({
+	path: path.resolve('./env_variables'),
+	silent: true
+});
 
 var T = new Twit({
 	consumer_key: process.env.TWITTER_CONSUMER_KEY,
