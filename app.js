@@ -34,18 +34,18 @@ function postTweet(text) {
 }
 
 function postTweetAndImage(image, text, trimmedText){
-	
+	console.log(image);
 	T.post('media/upload', { media_data: image }, function (err, data, response) {
 	  // now we can assign alt text to the media, for use by screen readers and
 	  // other text-based presentations and interpreters
 	  var mediaIdStr = data.media_id_string
-	  var altText = "Small flowers in a planter on a sunny balcony, blossoming."
+	  var altText = trimmedText
 	  var meta_params = { media_id: mediaIdStr, alt_text: { text: altText } }
 
 	  T.post('media/metadata/create', meta_params, function (err, data, response) {
 	    if (!err) {
 	      // now we can reference the media and post a tweet (media will attach to the tweet)
-	      var params = { status: 'loving life #nofilter', media_ids: [mediaIdStr] }
+	      var params = { status: trimmedText, media_ids: [mediaIdStr] }
 
 	      T.post('statuses/update', params, function (err, data, response) {
 	        console.log(data)
@@ -64,9 +64,10 @@ bot.use(
 			postTweet(text);
 		} else if (text && text.length > 140) {
 			console.log("generating tweet for text > 140 characters");
-			var trimmedText = text.substring(0,138) + "…";
+			var trimmedText = text.substring(0,110) + "…";
 			var image = ctx.fillText(text, 10, 10);
 			var imageData =  canvas.toDataURL('image/png'); 
+			imageData = imageData.split(",")[1];
 			postTweetAndImage(imageData, text, trimmedText);
 		}
 	}
