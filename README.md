@@ -8,9 +8,12 @@ To set up:
 - Create a twitter app, note the token
 - create a file called "env_variables" in the root of the project with the following format:
 
-```SLACK_TOKEN=XXXXXXX
-TWITTER_TOKEN=XXXXXXX
+```SLACK_TOKEN=XXX
+TWITTER_CONSUMER_KEY=XXX
+TWITTER_CONSUMER_SECRET=XXX
+TWITTER_ACCESS_TOKEN=XXX
+TWITTER_ACCESS_TOKEN_SECRET=XXX
 ```
 
-run ```node hurrslack.js```
+run ```node app.js```
 
