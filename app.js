@@ -15,22 +15,30 @@ var T = new Twit({
 
 var bot = new slackbot(process.env.SLACK_TOKEN);
 
+function postTweet(text) {
+	T.post('statuses/update', { status: text }, (err, data, res) => {
+			if (err) {
+				console.error(err);
+			} else {
+				console.log('twote "' + text + '", received: ', data);
+			}
+	});
+}
+
 bot.use(
 	function(message, cb) {
 	if ('pin_added' == message.type) {
 		console.log('received pin', JSON.stringify(message.item, null, 2));
 		var text = message.item.message && message.item.message.text;
-		if (text) {
-			T.post('statuses/update', { status: text }, (err, data, res) => {
-					if (err) {
-						console.error(err);
-					} else {
-						console.log('twote "' + text + '", received: ', data);
-					}
-			});
+		if (text && text.length <= 140) {
+			postTweet(text);
+		} else if (text && text.length >140) {
+			var trimmedText = text.substring(0,138) + "…";
+			postTweet(trimmedText);
 		}
 	}
 });
+
 
 
 bot.connect();
