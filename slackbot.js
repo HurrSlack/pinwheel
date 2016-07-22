@@ -1,20 +1,10 @@
 var slack = require('@slack/client');
+var helpers = require('./helpers');
 
-var PROD = process.env.NODE_ENV !== 'development';
-var clientOpts = PROD ? {} : { logLevel: 'verbose' };
-
-function handleError (next) {
-  return function handlesError (err, response) {
-    if (err) {
-      throw err;
-    }
-    next(response);
-  };
-}
-
-function Slackbot (token) {
-  var rtm = new slack.RtmClient(token, clientOpts);
-  var web = new slack.WebClient(token, clientOpts);
+function Slackbot (env) {
+  var clientOpts = env.isProd ? {} : { logLevel: 'verbose' };
+  var rtm = new slack.RtmClient(env.vars.SLACK_TOKEN, clientOpts);
+  var web = new slack.WebClient(env.vars.SLACK_TOKEN, clientOpts);
   function includeChannel (next) {
     return function addChannelToResponse (response) {
       if (!response.channel_id) {
@@ -22,7 +12,7 @@ function Slackbot (token) {
       }
       return web.channels.info(
         response.channel_id,
-        handleError(function (channelRes) {
+        helpers.handleError(function (channelRes) {
           next(response, channelRes);
         }));
     };
