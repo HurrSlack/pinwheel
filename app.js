@@ -3,15 +3,15 @@ var path = require('path');
 var slackbot = require('node-slackbot');
 
 require('dotenv').config({
-	path: path.resolve('./env_variables'),
-	silent: true
+  path: path.resolve('./env_variables'),
+  silent: true
 });
 
 var T = new Twit({
-	consumer_key: process.env.TWITTER_CONSUMER_KEY,
-	consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
-	access_token: process.env.TWITTER_ACCESS_TOKEN,
-	access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
+  consumer_key: process.env.TWITTER_CONSUMER_KEY,
+  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  access_token: process.env.TWITTER_ACCESS_TOKEN,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
 });
 
 var bot = new slackbot(process.env.SLACK_TOKEN);
@@ -20,13 +20,13 @@ var Canvas = require('canvas')
 var CanvasTextWrapper = require('canvas-text-wrapper').CanvasTextWrapper;
 
 function postTweet(text) {
-	T.post('statuses/update', { status: text }, (err, data, res) => {
-			if (err) {
-				console.error(err);
-			} else {
-				console.log('twote "' + text + '", received: ', data);
-			}
-	});
+  T.post('statuses/update', { status: text }, (err, data, res) => {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log('twote "' + text + '", received: ', data);
+    }
+  });
 }
 
 function postTweetAndImage(image, trimmedText){
@@ -115,6 +115,7 @@ bot.use(
 			postTweetAndImage(imageData, trimmedText);
 		}
 	}
+
 });
 
 
