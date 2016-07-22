@@ -1,6 +1,6 @@
 var Twit = require('twit');
 var path = require('path');
-var Slackbot = require('node-slackbot');
+var Slackbot = require('./slackbot');
 
 require('dotenv').config({
   path: path.resolve('./env_variables'),
@@ -14,7 +14,7 @@ var T = new Twit({
   access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET
 });
 
-var bot = new Slackbot(process.env.SLACK_TOKEN);
+var bot = Slackbot(process.env.SLACK_TOKEN);
 var Canvas = require('canvas');
 var CanvasTextWrapper = require('canvas-text-wrapper').CanvasTextWrapper;
 
@@ -113,24 +113,35 @@ function createSlackImage (canvas, text, time) {
   CanvasTextWrapper(canvas, text, options);
 }
 
-bot.use(function (message, cb) {
-  if (message.type === 'pin_added') {
-    console.log('received pin', JSON.stringify(message.item, null, 2));
-    var text = message.item.message && message.item.message.text;
-    if (text && text.length <= 140) {
-      postTweet(text);
-    } else if (text && text.length > 140) {
-      console.log('generating tweet for text > 140 characters');
-      var trimmedText = text.substring(0, 110) + '…';
-      var canvas = new Canvas(880, 400);
-      createSlackImage(canvas, text);
-      var imageData = canvas.toDataURL('image/png');
-      imageData = imageData.split(',')[1];
-      postTweetAndImage(imageData, trimmedText);
-    }
+bot.onPinAdded(function (message, channelData) {
+  console.log('received pin', JSON.stringify(message.item, null, 2));
+  var channel = channelData.channel;
+  if (!channel.is_member) {
+    console.log(
+      'pin was in channel #' + channel.name + ', of which i am not a member'
+    );
+    return;
+  }
+  console.log(
+    'pin was in channel #' + channel.name + ', of which i am a member. post!'
+  );
+  var text = message.item.message && message.item.message.text;
+  if (text && text.length <= 140) {
+    postTweet(text);
+  } else if (text && text.length > 140) {
+    console.log('generating tweet for text > 140 characters');
+    var trimmedText = text.substring(0, 110) + '…';
+    var canvas = new Canvas(880, 400);
+    createSlackImage(canvas, text);
+    var imageData = canvas.toDataURL('image/png');
+    imageData = imageData.split(',')[1];
+    postTweetAndImage(imageData, trimmedText);
   }
 });
 
-bot.connect();
-console.log('listening...');
-
+bot.connect(function onConnected (data) {
+  console.log(
+    'Logged in as ' + data.self.name + 'of team ' + data.team.name + '\n\n' +
+    'listening...'
+  );
+});
