@@ -4,7 +4,7 @@
   "description": "Post pinned tweets to slack",
   "repository": {
     "type": "git",
-    "url": "HurrSlack/Pinwheel"
+    "url": "HurrSlack/pinwheel"
   },
   "version": "0.0.1",
   "scripts": {
