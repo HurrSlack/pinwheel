@@ -15,7 +15,7 @@ require('dotenv').config({
   silent: env.vars.NODE_ENV !== 'development'
 });
 
-var bot = Slackbot(env);
+var bot = Slackbot(require('@slack/client'), env);
 var tweeter = TwitterPoster(env);
 var log = helpers.logger('App', env.isDev);
 
