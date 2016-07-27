@@ -3,7 +3,7 @@ var https = require('https');
 var url = require('url');
 var assign = require('lodash.assign');
 var concat = require('concat-stream');
-var slackbot = require('./slackbot');
+var Slackbot = require('./slackbot');
 var TwitterPoster = require('./twitter');
 var createFakeScreenshot = require('./create-fake-screenshot');
 var helpers = require('./helpers');
@@ -15,7 +15,7 @@ require('dotenv').config({
   silent: env.vars.NODE_ENV !== 'development'
 });
 
-var bot = slackbot.Slackbot(require('@slack/client'), env);
+var bot = Slackbot(require('@slack/client'), env);
 var tweeter = TwitterPoster(env);
 var log = helpers.logger('App', env.isDev);
 
