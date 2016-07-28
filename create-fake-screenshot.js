@@ -1,56 +1,85 @@
-var Canvas = require('canvas');
-var CanvasTextWrapper = require('canvas-text-wrapper').CanvasTextWrapper;
+/* global $ */
+var path = require('path');
+var helpers = require('./helpers');
+var env = helpers.getEnv(process);
 
-module.exports = function createSlackImage (text, time) {
-  var canvas = new Canvas(800, 400);
+require('dotenv').config({
+  path: path.resolve('./env_variables'),
+  silent: env.vars.NODE_ENV !== 'development'
+});
 
-  var ctx = canvas.getContext('2d');
+var phantom = require('phantom');
+var _ph, _page;
 
-  time = '4:20PM';
-
-  ctx.fillStyle = 'white'; // background color
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = '#2c2d30'; // stroke color
-
-  ctx.beginPath();
-  ctx.moveTo(30, 30);
-  ctx.lineTo(90, 30);
-  ctx.quadraticCurveTo(100, 30, 100, 40);
-  ctx.lineTo(100, 100);
-  ctx.quadraticCurveTo(100, 110, 90, 110);
-  ctx.lineTo(30, 110);
-  ctx.quadraticCurveTo(20, 110, 20, 100);
-  ctx.lineTo(20, 40);
-  ctx.quadraticCurveTo(20, 30, 30, 30);
-  ctx.stroke();
-
-  ctx.fillStyle = '#2c2d30'; // text color
-  var options = {
-    font: 'bold 24px Arial', // Lato
-    lineHeight: 1.375,
-    paddingX: 120,
-    paddingY: 20
-  };
-  CanvasTextWrapper(canvas, 'Hurr Slack', options);
-
-  ctx.fillStyle = '#9e9ea6'; // text color
-  options = {
-    font: '15px Arial', // Lato
-    lineHeight: 1.375,
-    paddingX: 250,
-    paddingY: 30
-  };
-  CanvasTextWrapper(canvas, time, options);
-
-  ctx.fillStyle = '#2c2d30'; // text color
-  options = {
-    font: '24px Arial', // Lato
-    lineHeight: 1.375,
-    paddingX: 120,
-    paddingY: 55
-  };
-  CanvasTextWrapper(canvas, text, options);
-  var imageData = canvas.toDataURL('image/png');
-  return imageData.substring(imageData.indexOf(',') + 1);
+module.exports = function createSlackImage (archiveUrl) {
+  phantom.create().then(ph => {
+    _ph = ph;
+    return _ph.createPage();
+  }).then(page => {
+    _page = page;
+    return page.property('viewportSize', { width: 320, height: 480 });
+  }).then(() => {
+    return _page.open(archiveUrl);
+  }).then(status => {
+    console.log(status);
+    // var username = env.vars.SLACK_USERNAME;
+    // var password = env.vars.SLACK_PASSWORD;
+    return _page.evaluate(function () {
+      $('#email').val('charlesv@gmail.com');
+      $('#password').val('XX');
+      $('#signin_btn').click();
+    });
+  }).then(wat => {
+    function checkHighlight () {
+      return _page.evaluate(function () {
+        return !!document.querySelector('.highlight');
+      });
+    }
+    var times = 0;
+    return new Promise((resolve, reject) => {
+      setTimeout(function waitForHighlight () {
+        checkHighlight().then(exists => {
+          if (exists) {
+            resolve(exists);
+          } else if (times++ > 9) {
+            console.log('giving up');
+            reject(Error('never found highlighted element'));
+          } else {
+            setTimeout(waitForHighlight, 1000);
+          }
+        });
+      }, 9000);
+    });
+  }).then(yey => {
+    return _page.evaluate(function () {
+      var message = document.querySelector('.highlight');
+      message.classList.remove('highlight');
+      message.scrollIntoView();
+      var messageBody = message.querySelector('.message_body');
+      messageBody.style.padding = '10px';
+      var box = messageBody.getBoundingClientRect();
+      var jqbox = $(messageBody).offset(); // only jquery gets this right, for some reason
+      return {
+        top: jqbox.top,
+        left: jqbox.left,
+        width: box.width,
+        height: box.height
+      };
+    });
+  }).then(rect => {
+    console.log('the rect', rect);
+    return _page.property('clipRect', rect);
+  }).then(() => {
+    _page.render('out.png');
+    var imageData = require('fs').readFileSync('out.png');
+    return imageData;
+  }).then(() => {
+    console.log('holy shit it worked');
+    _page.close();
+    _ph.exit();
+  }).catch(e => {
+    console.error(e);
+    _page.close();
+    _ph.exit();
+  });
 };
