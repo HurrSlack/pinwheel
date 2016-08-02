@@ -11,8 +11,8 @@ require('dotenv').config({
 var phantom = require('phantom');
 var _ph, _page;
 
-module.exports = function createSlackImage (archiveUrl, trimmedText, callback) {
-  console.log('archive : ' + archiveUrl + 'trim:' + trimmedText);
+module.exports = function createSlackImage (archiveUrl, callback) {
+  console.log('archive : ' + archiveUrl);
   phantom.create().then(ph => {
     _ph = ph;
     return _ph.createPage();
@@ -23,13 +23,11 @@ module.exports = function createSlackImage (archiveUrl, trimmedText, callback) {
     return _page.open(archiveUrl);
   }).then(status => {
     console.log(status);
-    // var username = env.vars.SLACK_USERNAME;
-    // var password = env.vars.SLACK_PASSWORD;
-    return _page.evaluate(function () {
-      $('#email').val('charlesv@gmail.com');
-      $('#password').val('xx');
+    return _page.evaluate(function (credential) {
+      $('#email').val(credential[0]);
+      $('#password').val(credential[1]);
       $('#signin_btn').click();
-    });
+    }, [env.vars.SLACK_USERNAME, env.vars.SLACK_PASSWORD]);
   }).then(wat => {
     function checkHighlight () {
       return _page.evaluate(function () {
@@ -73,12 +71,10 @@ module.exports = function createSlackImage (archiveUrl, trimmedText, callback) {
   }).then(() => {
     return _page.render('out.png');
   }).then(() => {
-    var imageData = require('fs').readFile('out.png', 'base64', callback);
-    return imageData; // , trimmedText;
-  }).then(() => {
     console.log('holy shit it worked');
     _page.close();
     _ph.exit();
+    require('fs').readFile('out.png', 'base64', callback);
   }).catch(e => {
     console.error(e);
     _page.close();
