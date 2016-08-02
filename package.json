@@ -11,7 +11,7 @@
     "start": "cross-env NODE_ENV=production node app.js",
     "dev": "cross-env NODE_ENV=development node app.js",
     "lint": "eslint .",
-    "test": "./node_modules/.bin/istanbul test ./node_modules/.bin/_mocha -- -R spec"
+    "test": "./node_modules/.bin/istanbul test _mocha -- -R spec"
   },
   "config": {
     "ghooks": {
