@@ -23,7 +23,6 @@
     "concat-stream": "^1.5.1",
     "cross-env": "^2.0.0",
     "dotenv": "^2.0.0",
-    "fs": "0.0.2",
     "lodash.assign": "^4.0.9",
     "phantom": "^2.1.13",
     "twit": "^2.2.4"
