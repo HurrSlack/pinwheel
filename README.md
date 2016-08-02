@@ -8,7 +8,8 @@ To set up:
 - Create a twitter app, note the tokens
 - create a file called "env_variables" in the root of the project with the following format:
 
-```SLACK_TOKEN=XXX
+```
+SLACK_TOKEN=XXX
 TWITTER_CONSUMER_KEY=XXX
 TWITTER_CONSUMER_SECRET=XXX
 TWITTER_ACCESS_TOKEN=XXX
