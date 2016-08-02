@@ -11,7 +11,8 @@ require('dotenv').config({
 var phantom = require('phantom');
 var _ph, _page;
 
-module.exports = function createSlackImage (archiveUrl) {
+module.exports = function createSlackImage (archiveUrl, trimmedText, callback) {
+  console.log('archive : ' + archiveUrl + 'trim:' + trimmedText)
   phantom.create().then(ph => {
     _ph = ph;
     return _ph.createPage();
@@ -26,7 +27,7 @@ module.exports = function createSlackImage (archiveUrl) {
     // var password = env.vars.SLACK_PASSWORD;
     return _page.evaluate(function () {
       $('#email').val('charlesv@gmail.com');
-      $('#password').val('XX');
+      $('#password').val('xx');
       $('#signin_btn').click();
     });
   }).then(wat => {
@@ -70,9 +71,10 @@ module.exports = function createSlackImage (archiveUrl) {
     console.log('the rect', rect);
     return _page.property('clipRect', rect);
   }).then(() => {
-    _page.render('out.png');
-    var imageData = require('fs').readFileSync('out.png');
-    return imageData;
+    return _page.render('out.png');
+  }).then(() => {
+    var imageData = require('fs').readFile('out.png', 'base64', callback);
+    return imageData; // , trimmedText;
   }).then(() => {
     console.log('holy shit it worked');
     _page.close();

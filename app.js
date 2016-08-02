@@ -19,6 +19,14 @@ var bot = Slackbot(require('@slack/client'), env);
 var tweeter = TwitterPoster(env);
 var log = helpers.logger('App', env.isDev);
 
+function onImageDataDone (err, imageData, trimmedText) {
+  if (err) {
+    throw err;
+  }
+  console.log('callback called!');
+  tweeter.postTweetAndImage(imageData, trimmedText);
+}
+
 function postText (message) {
   console.log(message);
   var text = message.item.message && message.item.message.text;
@@ -27,8 +35,7 @@ function postText (message) {
   } else if (text && text.length > 140) {
     log('generating tweet for text > 140 characters');
     var trimmedText = text.substring(0, 110) + '…';
-    var imageData = createFakeScreenshot(message.item.message.permalink);
-    tweeter.postTweetAndImage(imageData, trimmedText);
+    createFakeScreenshot(message.item.message.permalink, trimmedText, onImageDataDone);
   }
 }
 
