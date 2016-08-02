@@ -1,4 +1,4 @@
-# hurr slack
+# Pinwheel
 tweet pinned slack messages
 
 To set up:

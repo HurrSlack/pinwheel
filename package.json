@@ -1,10 +1,10 @@
 {
-  "author": "Hurr Slack",
-  "name": "HurrSlack",
+  "author": "Professional Developers",
+  "name": "Pinwheel",
   "description": "Post pinned tweets to slack",
   "repository": {
     "type": "git",
-    "url": "HurrSlack/pinwheel"
+    "url": "ProfessionalDevelopers/pinwheel"
   },
   "version": "0.0.1",
   "scripts": {
