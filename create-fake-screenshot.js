@@ -18,7 +18,7 @@ module.exports = function createSlackImage (archiveUrl, callback) {
     return _ph.createPage();
   }).then(page => {
     _page = page;
-    return page.property('viewportSize', { width: 320, height: 480 });
+    return page.property('viewportSize', { width: 600, height: 600 });
   }).then(() => {
     return _page.open(archiveUrl);
   }).then(status => {
