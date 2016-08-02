@@ -12,7 +12,7 @@ var phantom = require('phantom');
 var _ph, _page;
 
 module.exports = function createSlackImage (archiveUrl, trimmedText, callback) {
-  console.log('archive : ' + archiveUrl + 'trim:' + trimmedText)
+  console.log('archive : ' + archiveUrl + 'trim:' + trimmedText);
   phantom.create().then(ph => {
     _ph = ph;
     return _ph.createPage();
