@@ -1,6 +1,6 @@
-var slack = require('@slack/client');
 var assign = require('lodash.assign');
 var helpers = require('./helpers');
+var slack = require('@slack/client');
 
 function withDefaultOptions (env, options) {
   var defaultOpts = env.isProd ? {} : { logLevel: 'verbose' };
@@ -9,13 +9,15 @@ function withDefaultOptions (env, options) {
 
 function Slackbot (transport, env, options) {
   var mergedOptions = withDefaultOptions(env, options);
-  var rtm = new transport.RtmClient(env.vars.SLACK_TOKEN, mergedOptions);
-  var web = new transport.WebClient(env.vars.SLACK_TOKEN, mergedOptions);
-  var logger = helpers.logger('Slackbot', mergedOptions.logLevel === 'verbose');
+  this.rtm = new transport.RtmClient(env.vars.SLACK_TOKEN, mergedOptions);
+  this.web = new transport.WebClient(env.vars.SLACK_TOKEN, mergedOptions);
+  this.logger = helpers.logger('Slackbot', mergedOptions.logLevel === 'verbose');
+}
 
-  function includeChannel (next) {
-    var yak = logger.sub('includeChannel');
-    return function addChannelToResponse (response) {
+Slackbot.prototype.includeChannel = function (next) {
+  var yak = this.logger.sub('includeChannel');
+  return (function (web) {
+    return function (response) {
       if (!response.channel_id) {
         yak('no channel_id found, will not place call', response);
         return next(response);
@@ -23,35 +25,36 @@ function Slackbot (transport, env, options) {
       yak('channel_id found in response, get info for', response.channel_id);
       return web.channels.info(
         response.channel_id,
-        helpers.handleError(function (channelRes) {
-          yak('channel response for', response.channel_id, channelRes);
-          next(response, channelRes);
+        helpers.handleError(function (channelResponse) {
+          yak('channel response for', response.channel_id, channelResponse);
+          next(response, channelResponse);
         }));
     };
-  }
-  function getFileInfo (id, next) {
-    var yak = logger.sub('getFileInfo');
-    yak('getting file', id);
-    web.files.info(id, helpers.handleError(function (res) {
-      yak('received file', res.file);
-      next(res.file);
-    }));
-  }
-  function onPinAdded (next) {
-    rtm.on(slack.RTM_EVENTS.PIN_ADDED, includeChannel(function (res, chan) {
-      logger('onPinAdded', res);
-      next.call(this, res, chan);
-    }));
-  }
-  function connect (next) {
-    rtm.on(slack.CLIENT_EVENTS.RTM.AUTHENTICATED, next);
-    rtm.start();
-  }
-  return {
-    getFileInfo: getFileInfo,
-    onPinAdded: onPinAdded,
-    connect: connect
-  };
-}
+  })(this.web);
+};
+
+Slackbot.prototype.getFileInfo = function (id, next) {
+  var yak = this.logger.sub('getFileInfo');
+  yak('getting file', id);
+  this.web.files.info(id, helpers.handleError(function (res) {
+    yak('received file', res.file);
+    next(res.file);
+  }));
+};
+
+Slackbot.prototype.onPinAdded = function (next) {
+  // TODO verify use of 'this' in next.call
+  // TODO verify change in logger logic
+  var yak = this.logger.sub('onPinAdded');
+  this.rtm.on(slack.RTM_EVENTS.PIN_ADDED, this.includeChannel(function (response, channelResponse) {
+    yak('pin added', response);
+    next.call(this, response, channelResponse);
+  }));
+};
+
+Slackbot.prototype.connect = function (next) {
+  this.rtm.on(slack.CLIENT_EVENTS.RTM.AUTHENTICATED, next);
+  this.rtm.start();
+};
 
 module.exports = Slackbot;
