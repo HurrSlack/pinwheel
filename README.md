@@ -1,5 +1,5 @@
 # Pinwheel
-tweet pinned slack messages
+Tweet pinned slack messages.
 
 To set up:
 
