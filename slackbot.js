@@ -53,7 +53,9 @@ Slackbot.prototype.onPinAdded = function (next) {
 };
 
 Slackbot.prototype.connect = function (next) {
-  this.rtm.on(slack.CLIENT_EVENTS.RTM.AUTHENTICATED, next);
+  if (typeof next === 'function') {
+    this.rtm.on(slack.CLIENT_EVENTS.RTM.AUTHENTICATED, next);
+  }
   this.rtm.start();
 };
 
