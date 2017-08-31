@@ -43,89 +43,88 @@ describe('the slackbot factory', function () {
 
   describe('includeChannel', function () {
     it('ignores the channel if no channel_id is found', function (done) {
-      var next = sinon.spy(() => done());
-      var wrappedNext = bot.includeChannel(next);
       var response = {};
-      wrappedNext(response);
-      next.calledOnce.should.be.true;
-      next.getCall(0).args.should.eql([response]);
+      var next = bot.includeChannel(function (res) {
+        res.should.equal(response);
+        done();
+      });
+      next(response);
     });
     it('includes the channel if channel_id is found', function (done) {
+      var originalResponse = {channel_id: 'channel-id'};
+      var channelInfo = { name: 'channel-name' };
       transport = new MockTransport({
-        webChannelsInfo: function (channelId, next) {
-          var err = false;
-          next(err, 'channel-response');
+        webChannelsInfo: function (requestedChannelId, cb) {
+          requestedChannelId.should.equal(originalResponse.channel_id);
+          setImmediate(cb.bind(null, null, channelInfo));
         }
       });
       bot = new Slackbot(transport, env);
-      var next = sinon.spy(() => done());
-      var wrappedNext = bot.includeChannel(next);
-      var response = {channel_id: 'channel-id'};
-      wrappedNext(response);
-      bot.web.channels.info.calledOnce.should.be.true;
-      bot.web.channels.info.getCall(0).args[0].should.equal('channel-id');
+      var wrappedNext = bot.includeChannel(function (res, channelResponse) {
+        res.should.equal(originalResponse);
+        bot.web.channels.info.called.should.be.true;
+        channelResponse.should.equal(channelInfo);
+        done();
+      });
+      wrappedNext(originalResponse);
     });
   });
 
   describe('getFileInfo', function () {
     it('gets a file by id', function (done) {
       var id = 'test-file';
-      var next = sinon.spy(() => done());
-      var resultFile = 'result-file';
+      var fileInfo = { file: 'result-file' };
       transport = new MockTransport({
-        webFilesInfo: function (id, next) {
-          var err = false;
-          var res = { file: resultFile };
-          next(err, res);
+        webFilesInfo: function (requestedFileId, cb) {
+          requestedFileId.should.equal(id);
+          setImmediate(cb.bind(null, null, fileInfo));
         }
       });
       bot = new Slackbot(transport, env);
-
-      bot.getFileInfo(id, next);
-      bot.web.files.info.called.should.be.true;
-      bot.web.files.info.getCall(0).args[0].should.equal(id);
-      next.calledOnce.should.be.true;
-      next.getCall(0).args[0].should.equal(resultFile);
+      bot.getFileInfo(id, function (info) {
+        bot.web.files.info.called.should.be.true;
+        info.should.equal(fileInfo.file);
+        done();
+      });
     });
   });
 
   describe('onPinAdded', function () {
-    it('registers a callback on rtm', function (done) {
+    it('registers a callback on rtm pin_added event', function (done) {
+      var pinEvent = { channel_id: 'channel-id' };
+      var channelInfo = { name: 'channel-name' };
       transport = new MockTransport({
-        webChannelsInfo: function (channelId, next) {
-          var err = false;
-          next(err, 'channel-response');
+        webChannelsInfo: function (requestedChannelId, cb) {
+          requestedChannelId.should.equal(pinEvent.channel_id);
+          setImmediate(cb.bind(null, null, channelInfo));
         },
-        rtmOn: function (evt, next) {
-          var response = { channel_id: 'channel-id' };
-          next(response);
+        rtmOn: function (evt, cb) {
+          setImmediate(cb.bind(null, pinEvent));
         }
       });
       bot = new Slackbot(transport, env);
-      var next = sinon.spy(() => done());
-      bot.onPinAdded(next);
-      bot.rtm.on.calledOnce.should.be.true;
-      bot.rtm.on.getCall(0).args[0].should.equal(slack.RTM_EVENTS.PIN_ADDED);
-      next.calledOnce.should.be.true;
-      next.getCall(0).args.should.eql([{ channel_id: 'channel-id' }, 'channel-response']);
+      bot.onPinAdded(function (evt, channel) {
+        bot.rtm.on.calledWith(slack.RTM_EVENTS.PIN_ADDED).should.be.true;
+        evt.should.equal(pinEvent);
+        channel.should.equal(channelInfo);
+        done();
+      });
     });
   });
 
   describe('connect', function () {
     it('authenticates and starts the rtm client', function (done) {
       transport = new MockTransport({
-        rtmOn: function (evt, next) {
-          next();
+        rtmOn: function (evt, cb) {
+          setImmediate(cb);
         }
       });
       bot = new Slackbot(transport, env);
-      bot.connect(done);
-      bot.rtm.on.calledOnce.should.be.true;
-      bot.rtm.on.getCall(0).args.should.eql([
-        slack.CLIENT_EVENTS.RTM.AUTHENTICATED,
-        done
-      ]);
-      bot.rtm.start.calledOnce.should.be.true;
+      bot.connect(function () {
+        bot.rtm.on.calledWith(slack.CLIENT_EVENTS.RTM.AUTHENTICATED).should.be.true;
+        bot.rtm.start.calledOnce.should.be.true;
+        done();
+      });
     });
   });
 });
