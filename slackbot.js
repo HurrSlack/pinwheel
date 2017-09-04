@@ -33,6 +33,20 @@ Slackbot.prototype.includeChannel = function (next) {
   })(this.web);
 };
 
+Slackbot.prototype.getMessageInfo = function (channelId, ts, next) {
+  var yak = this.logger.sub('getMessageInfo');
+  yak('getting message info for', channelId, ts);
+  var opts = {
+    latest: ts,
+    inclusive: true,
+    count: 1
+  };
+  this.web.channels.history(channelId, opts, helpers.handleError(function (res) {
+    yak('received array of messages, length', res.messages.length);
+    next(res.messages[0]);
+  }));
+};
+
 Slackbot.prototype.getFileInfo = function (id, next) {
   var yak = this.logger.sub('getFileInfo');
   yak('getting file', id);
@@ -50,6 +64,32 @@ Slackbot.prototype.onItemPinned = function (next) {
     yak('pin added', response);
     next.call(this, response, channelResponse);
   }));
+};
+
+Slackbot.prototype.onReacji = function (reacjiWanted, handler) {
+  var yak = this.logger.sub('onReacji');
+  var matching = typeof reacjiWanted === 'string' ? [reacjiWanted] : reacjiWanted;
+  this.rtm.on(slack.RTM_EVENTS.REACTION_ADDED, function (response) {
+    if (matching.every(function (reacji) { return reacji !== response.reaction; })) {
+      return;
+    }
+    yak('reacji matching ' + reacjiWanted + ' added', response);
+    if (!response.item) {
+      return;
+    }
+    if (response.item.type === 'message') {
+      yak('type is message, so we fetch message info');
+      this.getMessageInfo(response.item.channel, response.item.ts, function (message) {
+        handler.call(this, Object.assign({}, response, { message: message }));
+      });
+    } else if (response.item.type === 'file') {
+      yak('type is file, so we put the file_id where it goes');
+      handler.call(this, Object.assign({}, response, { file_id: response.item.file }));
+    }
+    if (!(response.item && response.item.type === 'message')) {
+      return;
+    }
+  }.bind(this));
 };
 
 Slackbot.prototype.connect = function (next) {
