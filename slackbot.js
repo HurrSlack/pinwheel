@@ -14,25 +14,6 @@ function Slackbot (transport, env, options) {
   this.logger = helpers.logger('Slackbot', mergedOptions.logLevel === 'verbose');
 }
 
-Slackbot.prototype.includeChannel = function (next) {
-  var yak = this.logger.sub('includeChannel');
-  return (function (web) {
-    return function (response) {
-      if (!response.channel_id) {
-        yak('no channel_id found, will not place call', response);
-        return next(response);
-      }
-      yak('channel_id found in response, get info for', response.channel_id);
-      return web.channels.info(
-        response.channel_id,
-        helpers.handleError(function (channelResponse) {
-          yak('channel response for', response.channel_id, channelResponse);
-          next(response, channelResponse);
-        }));
-    };
-  })(this.web);
-};
-
 Slackbot.prototype.getMessageInfo = function (channelId, ts, next) {
   var yak = this.logger.sub('getMessageInfo');
   yak('getting message info for', channelId, ts);
@@ -56,14 +37,29 @@ Slackbot.prototype.getFileInfo = function (id, next) {
   }));
 };
 
+Slackbot.prototype.getChannelInfo = function (channelId, next) {
+  var yak = this.logger.sub('channelInfo');
+  yak('get info for', channelId);
+  this.web.channels.info(channelId, helpers.handleError(function (response) {
+    yak('channel response for', channelId, response);
+    next(response);
+  }));
+};
+
 Slackbot.prototype.onItemPinned = function (next) {
   // TODO verify use of 'this' in next.call
   // TODO verify change in logger logic
   var yak = this.logger.sub('onItemPinned');
-  this.rtm.on(slack.RTM_EVENTS.PIN_ADDED, this.includeChannel(function (response, channelResponse) {
-    yak('pin added', response);
-    next.call(this, response, channelResponse);
-  }));
+  this.rtm.on(slack.RTM_EVENTS.PIN_ADDED, function (pinEvent) {
+    yak('pin added', pinEvent);
+    if (!pinEvent.channel_id) {
+      next.call(this, pinEvent);
+    } else {
+      this.getChannelInfo(pinEvent.channel_id, function (channel) {
+        next.call(this, pinEvent, channel);
+      });
+    }
+  }.bind(this));
 };
 
 Slackbot.prototype.onReacji = function (reacjiWanted, handler) {
@@ -77,17 +73,17 @@ Slackbot.prototype.onReacji = function (reacjiWanted, handler) {
     if (!response.item) {
       return;
     }
-    if (response.item.type === 'message') {
-      yak('type is message, so we fetch message info');
+    if (response.item.type === 'message' && response.item.channel) {
+      yak('type is message and channel is public, so we fetch message info');
       this.getMessageInfo(response.item.channel, response.item.ts, function (message) {
-        handler.call(this, Object.assign({}, response, { message: message }));
-      });
+        this.getChannelInfo(response.item.channel, handler.bind(
+          this,
+          Object.assign({}, response, { message: message })
+        ));
+      }.bind(this));
     } else if (response.item.type === 'file') {
       yak('type is file, so we put the file_id where it goes');
       handler.call(this, Object.assign({}, response, { file_id: response.item.file }));
-    }
-    if (!(response.item && response.item.type === 'message')) {
-      return;
     }
   }.bind(this));
 };

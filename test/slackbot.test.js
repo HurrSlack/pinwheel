@@ -25,25 +25,13 @@ describe('Slackbot', function () {
     bot.should.respondTo('getFileInfo');
   });
 
-  describe('includeChannel', function () {
-    it('ignores the channel if no channel_id is found', function (done) {
-      var response = {};
-      var next = bot.includeChannel(function (res) {
-        res.should.equal(response);
+  describe('getChannelInfo', function () {
+    it('gets info for a channel', function (done) {
+      bot.getChannelInfo('some-channel', function (response) {
+        bot.web.channels.info.calledWith('some-channel').should.be.true;
+        response.should.equal(MockTransport.fixtures.channels.info);
         done();
       });
-      next(response);
-    });
-    it('includes the channel if channel_id is found', function (done) {
-      var originalResponse = {channel_id: 'channel-id'};
-      var channelInfo = MockTransport.fixtures.channels.info;
-      var wrappedNext = bot.includeChannel(function (res, channelResponse) {
-        res.should.equal(originalResponse);
-        bot.web.channels.info.calledWith(originalResponse.channel_id).should.be.true;
-        channelResponse.should.equal(channelInfo);
-        done();
-      });
-      wrappedNext(originalResponse);
     });
   });
 
@@ -121,6 +109,14 @@ describe('Slackbot', function () {
     it('registers a callback on reacji events', function () {
       bot.onReacji('whoa', function () {});
       bot.rtm.on.calledWith(slack.RTM_EVENTS.REACTION_ADDED);
+    });
+
+    it('receives channel data with reacji events', function (done) {
+      bot.onReacji('wat', function (event, channelData) {
+        channelData.should.eql(MockTransport.fixtures.channels.info);
+        done();
+      });
+      bot.connect();
     });
 
     it('ignores file comment reactions for now', function (done) {
