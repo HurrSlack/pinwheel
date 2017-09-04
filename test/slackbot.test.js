@@ -21,7 +21,7 @@ describe('Slackbot', function () {
   it('factory makes a slackbot API interface', function () {
     bot.should.be.an('object');
     bot.should.respondTo('connect');
-    bot.should.respondTo('onPinAdded');
+    bot.should.respondTo('onItemPinned');
     bot.should.respondTo('getFileInfo');
   });
 
@@ -36,11 +36,7 @@ describe('Slackbot', function () {
     });
     it('includes the channel if channel_id is found', function (done) {
       var originalResponse = {channel_id: 'channel-id'};
-      var channelInfo = { name: 'channel-name' };
-      transport = new MockTransport({
-        webChannelInfo: channelInfo
-      });
-      bot = new Slackbot(transport, env);
+      var channelInfo = MockTransport.fixtures.channels.info;
       var wrappedNext = bot.includeChannel(function (res, channelResponse) {
         res.should.equal(originalResponse);
         bot.web.channels.info.calledWith(originalResponse.channel_id).should.be.true;
@@ -51,14 +47,18 @@ describe('Slackbot', function () {
     });
   });
 
+  // describe('getMessageInfo', function () {
+  //   it('gets a message from a channel at a timestamp', function (done) {
+  //     bot.getMessageInfo(channelId, ts, function (messageResponse) {
+  //
+  //     });
+  //   })
+  // })
+
   describe('getFileInfo', function () {
     it('gets a file by id', function (done) {
       var id = 'test-file';
-      var fileInfo = { file: 'result-file' };
-      transport = new MockTransport({
-        webFileInfo: fileInfo
-      });
-      bot = new Slackbot(transport, env);
+      var fileInfo = MockTransport.fixtures.files.info;
       bot.getFileInfo(id, function (info) {
         bot.web.files.info.calledWith(id).should.be.true;
         info.should.equal(fileInfo.file);
@@ -67,17 +67,26 @@ describe('Slackbot', function () {
     });
   });
 
-  describe('onPinAdded', function () {
+  describe('onItemPinned', function () {
     it('registers a callback on rtm pin_added event', function (done) {
-      var pinEvent = { channel_id: 'channel-id' };
-      bot.onPinAdded(function (evt, channel) {
+      var pinEvent = {
+        type: slack.RTM_EVENTS.PIN_ADDED,
+        channel_id: 'channel-id',
+        item: {
+          type: 'message'
+        }
+      };
+      transport = new MockTransport({
+        rtm: [pinEvent]
+      });
+      bot = new Slackbot(transport, env);
+      bot.onItemPinned(function (evt, channel) {
         evt.should.equal(pinEvent);
         channel.should.be.an('object').which.has.a.property('name');
-        channel.should.have.property('name');
         done();
       });
       bot.rtm.on.calledWith(slack.RTM_EVENTS.PIN_ADDED).should.be.true;
-      bot.rtm.emit(slack.RTM_EVENTS.PIN_ADDED, pinEvent);
+      bot.connect();
     });
   });
 
@@ -91,7 +100,6 @@ describe('Slackbot', function () {
         evt.should.exist;
         done();
       });
-      bot.rtm.emit(slack.CLIENT_EVENTS.RTM.AUTHENTICATED, [{}]);
     });
   });
 });

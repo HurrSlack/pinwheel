@@ -42,10 +42,10 @@ Slackbot.prototype.getFileInfo = function (id, next) {
   }));
 };
 
-Slackbot.prototype.onPinAdded = function (next) {
+Slackbot.prototype.onItemPinned = function (next) {
   // TODO verify use of 'this' in next.call
   // TODO verify change in logger logic
-  var yak = this.logger.sub('onPinAdded');
+  var yak = this.logger.sub('onItemPinned');
   this.rtm.on(slack.RTM_EVENTS.PIN_ADDED, this.includeChannel(function (response, channelResponse) {
     yak('pin added', response);
     next.call(this, response, channelResponse);

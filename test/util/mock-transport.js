@@ -3,45 +3,75 @@
  * RTMClient is a real event emitter.
  */
 var EventEmitter = require('events');
+var slack = require('@slack/client');
 var sinon = require('sinon');
 
-function MockRtmClient () {
-  EventEmitter.apply(this, arguments);
-  sinon.spy(this, 'start');
-  sinon.spy(this, 'on');
-}
-MockRtmClient.prototype = new EventEmitter();
-MockRtmClient.prototype.start = function () {};
-
-function MockInfoYieldingClient (fixture) {
-  this.fixture = fixture;
-  sinon.spy(this, 'info');
-}
-MockInfoYieldingClient.prototype.info = function (id, cb) {
-  setImmediate(cb.bind(null, null, this.fixture));
-};
-
-function MockWebClient () {
-  this.channels = new MockInfoYieldingClient(this.fixtures.webChannelInfo);
-  this.files = new MockInfoYieldingClient(this.fixtures.webFileInfo);
-}
-MockWebClient.prototype.fixtures = {
-  webChannelInfo: { name: 'default-channel' },
-  webFileInfo: { file: 'default-file' }
-};
-
-function MockTransport (fixtures) {
-  this.RtmClient = MockRtmClient;
-  this.WebClient = function MockWebClientWithFixtures () {
-    if (fixtures) {
-      this.fixtures = Object.assign({}, this.fixtures, fixtures);
+// Mock RTM Behavior
+function mockRtmClient (mockEvents) {
+  var events = new EventEmitter();
+  var eventSequence = mockEvents || [];
+  eventSequence.unshift({
+    type: slack.CLIENT_EVENTS.RTM.AUTHENTICATED
+  });
+  sinon.spy(events, 'on');
+  var client = {
+    on: events.on.bind(events),
+    start: function (callback) {
+      (function iterate (sequence) {
+        if (sequence.length > 0) {
+          setImmediate(function () {
+            events.emit(sequence[0].type, sequence[0]);
+            iterate(sequence.slice(1));
+          });
+        } else if (callback) {
+          callback();
+        }
+      }(eventSequence));
     }
-    MockWebClient.apply(this);
   };
-  this.WebClient.prototype = new MockWebClient();
+  sinon.spy(client, 'on');
+  sinon.spy(client, 'start');
+  return client;
 }
 
-MockTransport.RtmClient = MockRtmClient;
-MockTransport.WebClient = MockWebClient;
+var WebFixtureGroups = {
+  channels: {
+    info: { name: 'default-channel' },
+    history: { latest: '00000', messages: [ { type: 'message', text: 'Hello' } ] }
+  },
+  files: {
+    info: { file: 'default-file' }
+  }
+};
+
+function mockFixtureYieldingClient (fixtures) {
+  return Object.keys(fixtures).reduce(function (client, method) {
+    client[method] = function () {
+      // last argument is callback
+      var cb = Array.prototype.pop.call(arguments);
+      // bind cb to no context, null as first (error) arg per node convention, then passed arg
+      setImmediate(cb.bind(null, null, fixtures[method]));
+    };
+    sinon.spy(client, method);
+    return client;
+  }, {});
+}
+
+function mockWebClient (fixtureGroups) {
+  return Object.keys(fixtureGroups || {}).reduce(function (client, groupName) {
+    client[groupName] = mockFixtureYieldingClient(fixtureGroups[groupName]);
+    return client;
+  }, {});
+}
+
+function MockTransport (conf) {
+  var rtmConfig = conf && conf.rtm;
+  this.RtmClient = mockRtmClient.bind(this, rtmConfig);
+  var webConfig = conf && conf.web;
+  var webFixtureGroups = Object.assign({}, WebFixtureGroups, webConfig);
+  this.WebClient = mockWebClient.bind(this, webFixtureGroups);
+}
+
+MockTransport.fixtures = WebFixtureGroups;
 
 module.exports = MockTransport;

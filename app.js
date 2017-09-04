@@ -71,7 +71,7 @@ var postingStrategies = {
   file: postFile
 };
 
-bot.onPinAdded(function (message, channelData) {
+bot.onItemPinned(function (message, channelData) {
   var channel = channelData.channel;
   if (!channel.is_member) {
     log('pin was in #' + channel.name + ', of which i am not a member');
