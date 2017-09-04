@@ -110,22 +110,22 @@ var postingStrategies = {
   file: postFile
 };
 
-bot.onItemPinned(function (message, channelData) {
-  var channel = channelData.channel;
-  if (!channel.is_member) {
-    log('pin was in #' + channel.name + ', of which i am not a member');
-    return;
+var tweacji = (env.REACJI_TO_TRIGGER_TWEET || 'pushpin').split(',');
+var tweacjiFormatted = tweacji.map(function (ji) { return `:${ji}:`; });
+var tweacjiList = tweacjiFormatted.pop();
+if (tweacjiFormatted.length > 0) {
+  tweacjiList = tweacjiFormatted.join(', ') + ' or ' + tweacjiList;
+}
+
+bot.onItemPinned(function (event, channelData) {
+  var thing = 'something';
+  if (event.item && event.item.message && event.item.message.permalink) {
+    thing = event.item.message.permalink;
   }
-  log('pin was in #' + channel.name + ', of which i am a member. posting...');
-  var post = postingStrategies[message.item.type];
-  if (!post) {
-    var resText = JSON.stringify(message);
-    throw Error('No strategy to handle this type of pin: ' + resText);
-  }
-  post(message.item);
+  var text = `You just pinned ${thing} in #${channelData.channel.name}. Were you trying to get the Pinwheel bot to tweet it? *We've switched to using reacji instead of pins*, because pins are annoying and limited. So go react with ${tweacjiList} instead!`;
+  bot.dmUser(event.user, text);
 });
 
-var tweacji = (env.REACJI_TO_TRIGGER_TWEET || 'pushpin').split(',');
 bot.onReacji(tweacji, function (reaction, channelData) {
   var channel = channelData.channel;
   if (!channel.is_member) {

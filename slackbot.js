@@ -14,6 +14,26 @@ function Slackbot (transport, env, options) {
   this.logger = helpers.logger('Slackbot', mergedOptions.logLevel === 'verbose');
 }
 
+Slackbot.prototype.getUsername = function (userid, next) {
+  var yak = this.logger.sub('getUsername');
+  yak('getting username of ', userid);
+  this.web.users.info(userid, helpers.handleError(function (response) {
+    next('@' + response.user.name);
+  }));
+};
+
+Slackbot.prototype.dmUser = function (userid, text) {
+  this.getUsername(userid, function (username) {
+    this.web.chat.postMessage(username, text, {
+      as_user: false,
+      icon_emoji: ':pushpin:',
+      parse: 'full',
+      unfurl_links: true,
+      username: 'pinwheel'
+    });
+  }.bind(this));
+};
+
 Slackbot.prototype.getMessageInfo = function (channelId, ts, next) {
   var yak = this.logger.sub('getMessageInfo');
   yak('getting message info for', channelId, ts);
