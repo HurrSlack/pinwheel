@@ -3,6 +3,7 @@ var https = require('https');
 var url = require('url');
 var assign = require('lodash.assign');
 var concat = require('concat-stream');
+var LRU = require('lru-cache');
 var Slackbot = require('./slackbot');
 var TwitterPoster = require('./twitter');
 var createFakeScreenshot = require('./create-fake-screenshot');
@@ -19,25 +20,62 @@ var bot = new Slackbot(require('@slack/client'), env);
 var tweeter = TwitterPoster(env);
 var log = helpers.logger('App', env.isDev);
 
-function postText (message) {
-  console.log(message);
-  var text = message.item.message && message.item.message.text;
+var itemCache = LRU({
+  max: 5000,
+  maxAge: 2.628e9, // one month
+  length: function (n, key) { return key.length; }
+});
+
+var TWEET_STAGED = 'staged';
+function itemToKey (item) {
+  return JSON.stringify(item.item || item);
+}
+var tweetCache = {
+  stage: function (item) {
+    itemCache.set(itemToKey(item), TWEET_STAGED);
+  },
+  // TODO: store tweet id in cache so it can be detwote later
+  set: function (item, id) {
+    itemCache.set(itemToKey(item), id);
+  },
+  get: function (item) {
+    return itemCache.get(itemToKey(item));
+  },
+  drop: function (item) {
+    return itemCache.del(itemToKey(item));
+  }
+};
+
+tweetCache.stage({});
+
+function postText (item) {
+  var twote = tweetCache.get(item);
+  if (twote) {
+    return log('already twote', item);
+  }
+  var text = item.message && item.message.text;
   if (text && text.length <= 140) {
     tweeter.postTweet(text);
+    tweetCache.stage(item);
   } else if (text && text.length > 140) {
     log('generating tweet for text > 140 characters');
     var trimmedText = text.substring(0, 110) + '…';
     createFakeScreenshot(
-  message.item.message.permalink,
-  helpers.handleError(
-    (image) => tweeter.postTweetAndImage(image, trimmedText)
-  )
-);
+      item.message.permalink,
+      helpers.handleError(function (image) {
+        tweeter.postTweetAndImage(image, trimmedText);
+        tweetCache.stage(item);
+      })
+    );
   }
 }
 
-function postFile (message, next) {
-  bot.getFileInfo(message.item.file_id, function onFileInfo (info) {
+function postFile (item, next) {
+  var twote = tweetCache.get(item);
+  if (twote) {
+    return log('already twote', item);
+  }
+  bot.getFileInfo(item.file_id, function onFileInfo (info) {
     getImage(info.thumb_960 || info.thumb_480 || info.url_private);
     function getImage (uri) {
       var options = assign(url.parse(uri), {
@@ -60,6 +98,7 @@ function postFile (message, next) {
         res.pipe(concat(function sendImageData (data) {
           log('sending image data to tweeter');
           tweeter.postTweetAndImage(data, info.title);
+          tweetCache.stage(item);
         }));
       });
     }
@@ -71,19 +110,35 @@ var postingStrategies = {
   file: postFile
 };
 
-bot.onPinAdded(function (message, channelData) {
+var tweacji = (env.REACJI_TO_TRIGGER_TWEET || 'pushpin').split(',');
+var tweacjiFormatted = tweacji.map(function (ji) { return `:${ji}:`; });
+var tweacjiList = tweacjiFormatted.pop();
+if (tweacjiFormatted.length > 0) {
+  tweacjiList = tweacjiFormatted.join(', ') + ' or ' + tweacjiList;
+}
+
+bot.onItemPinned(function (event, channelData) {
+  var thing = 'something';
+  if (event.item && event.item.message && event.item.message.permalink) {
+    thing = event.item.message.permalink;
+  }
+  var text = `You just pinned ${thing} in #${channelData.channel.name}. Were you trying to get the Pinwheel bot to tweet it? *We've switched to using reacji instead of pins*, because pins are annoying and limited. So go react with ${tweacjiList} instead!`;
+  bot.dmUser(event.user, text);
+});
+
+bot.onReacji(tweacji, function (reaction, channelData) {
   var channel = channelData.channel;
   if (!channel.is_member) {
     log('pin was in #' + channel.name + ', of which i am not a member');
     return;
   }
   log('pin was in #' + channel.name + ', of which i am a member. posting...');
-  var post = postingStrategies[message.item.type];
+  var post = postingStrategies[reaction.item.type];
   if (!post) {
-    var resText = JSON.stringify(message);
+    var resText = JSON.stringify(reaction);
     throw Error('No strategy to handle this type of pin: ' + resText);
   }
-  post(message);
+  post(reaction.item);
 });
 
 bot.connect(function onConnected (data) {
