@@ -35,13 +35,16 @@ bot.onItemPinned(function (event, channelData) {
 });
 
 bot.onReacji(tweacji, function (reaction, channelData) {
-  var channel = channelData.channel;
-  if (!channel.is_member) {
+  var channel = channelData && channelData.channel;
+  if (channel && !channel.is_member) {
     log('pin was in #' + channel.name + ', of which i am not a member');
     return;
+  } else if (channel) {
+    log('pin was in #' + channel.name + ', of which i am a member. posting...');
+  } else {
+    log('could not detect channel data, trying to pin anyway?', reaction);
   }
-  log('pin was in #' + channel.name + ', of which i am a member. posting...');
-  (new Pin(env, bot, tweeter, tweetCache)).post(reaction.item);
+  (new Pin(env, bot, tweeter, tweetCache)).post(reaction);
 });
 
 bot.connect(function onConnected (data) {

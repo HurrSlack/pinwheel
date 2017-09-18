@@ -9,29 +9,30 @@ var log = helpers.logger('Pin');
 
 var strategies = {
   message: function postText (item) {
-    log('asked to post text, trying cache');
-    var twote = this._cache.get(item);
-    log('got item from cache', twote);
-    if (twote) {
-      return log('already twote', item);
-    }
-    if (!item || !item.message || !item.message.text || (typeof item.message.text !== 'string')) {
+    var message = item && item.message;
+    if (!message || !message.text || (typeof message.text !== 'string')) {
       throw Error('Message strategy cannot post passed object because it does not have a `message` ' +
                   'property with a `text` string:\n\n' + JSON.stringify(item, null, 2));
     }
-    var text = item.message.text;
+    log('asked to post text, trying cache');
+    var twote = this._cache.get(message);
+    log('got item from cache', twote);
+    if (twote) {
+      return log('already twote', message);
+    }
+    var text = message.text;
     if (text.length <= 140) {
       log('length <= 140, posting the following as text: ' + text);
       this._tweeter.postTweet(text);
-      this._cache.stage(item);
+      this._cache.stage(message);
     } else {
       log('generating tweet for text > 140 characters');
       var trimmedText = text.substring(0, 110) + '…';
       createFakeScreenshot(
-        item.message.permalink,
+        message.permalink,
         helpers.handleError(function (image) {
           this._tweeter.postTweetAndImage(image, trimmedText);
-          this._cache.stage(item);
+          this._cache.stage(message);
         }.bind(this))
       );
     }
@@ -80,12 +81,12 @@ function Pin (env, slackbot, tweeter, cache) {
   this._cache = cache;
 }
 
-Pin.prototype.post = function (reaction) {
-  var post = strategies[reaction && reaction.item && reaction.item.type];
+Pin.prototype.post = function (pinned) {
+  var post = strategies[pinned && pinned.item && pinned.item.type];
   if (!post) {
-    throw Error('No strategy to handle this type of pin: ' + JSON.stringify(reaction));
+    throw Error('No strategy to handle this type of pin: ' + JSON.stringify(pinned));
   }
-  post.apply(this, reaction.item);
+  post.call(this, pinned);
 };
 
 module.exports = Pin;
