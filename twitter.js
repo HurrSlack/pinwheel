@@ -2,6 +2,8 @@ var Twit = require('twit');
 var helpers = require('./helpers');
 
 module.exports = function Twitter (env) {
+  var log = helpers.logger('tweeter', env.isDev);
+
   var client = new Twit({
     consumer_key: env.vars.TWITTER_CONSUMER_KEY,
     consumer_secret: env.vars.TWITTER_CONSUMER_SECRET,
@@ -9,10 +11,13 @@ module.exports = function Twitter (env) {
     access_token_secret: env.vars.TWITTER_ACCESS_TOKEN_SECRET
   });
 
+  log('created client');
+
   function postTweet (text) {
+    log('postTweet', text);
     client.post('statuses/update', { status: text },
       helpers.handleError(function logTwote (data) {
-        console.log('twote "' + text + '", received: ', data);
+        log('twote "' + text + '", received: ', data);
       })
     );
   }
