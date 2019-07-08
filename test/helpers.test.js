@@ -152,4 +152,16 @@ describe('the helper module', function () {
       spy.withArgs('Test: Subtest: SubSubtest: ').calledOnce.should.be.true;
     });
   });
+  describe('includes `age`, which returns the ages of slack timestamps in ms', function () {
+    it('returns a difference between now in milliseconds', function () {
+      const later = new Date();
+      later.setTime(later.getTime() - 4000);
+      helpers.age(later.getTime() / 1000).should.be.approximately(4000, 500);
+    });
+    it('has convenience constants', function () {
+      const later = new Date();
+      later.setTime(later.getTime() - helpers.age.HOUR * 2);
+      helpers.age(later.getTime() / 1000).should.be.approximately(helpers.age.MINUTE * 120, 500);
+    });
+  });
 });

@@ -36,8 +36,18 @@ function logger (tag, works) {
   return log;
 }
 
+function age (timestamp) {
+  return Date.now() - new Date(timestamp * 1000).getTime();
+}
+
+age.SECOND = 1000;
+age.MINUTE = age.SECOND * 60;
+age.HOUR = age.MINUTE * 60;
+age.DAY = age.HOUR * 24;
+
 module.exports = {
   handleError: handleError,
   getEnv: getEnv,
-  logger: logger
+  logger: logger,
+  age: age
 };

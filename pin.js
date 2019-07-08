@@ -9,6 +9,9 @@ var log = helpers.logger('Pin');
 
 var strategies = {
   message: function postText (item) {
+    if (helpers.age(item.ts) > helpers.age.ONE_DAY) {
+      throw new Error('The pinned message cannot be twote because it is older than one day.');
+    }
     var message = item && item.message;
     if (!message || !message.text || (typeof message.text !== 'string')) {
       throw Error('Message strategy cannot post passed object because it does not have a `message` ' +
@@ -37,13 +40,16 @@ var strategies = {
       );
     }
   },
-  file: function postFile (item, next) {
+  file: function postFile (item) {
     var self = this;
     var twote = this._cache.get(item);
     if (twote) {
       return log('already twote', item);
     }
     this._slackbot.getFileInfo(item.file_id, function onFileInfo (info) {
+      if (helpers.age(info.timestamp) > helpers.age.ONE_DAY) {
+        throw new Error('The pinned file cannot be twote because it is older than one day.');
+      }
       getImage(info.thumb_960 || info.thumb_480 || info.url_private);
       function getImage (uri) {
         var options = assign(url.parse(uri), {
