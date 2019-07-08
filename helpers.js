@@ -36,8 +36,12 @@ function logger (tag, works) {
   return log;
 }
 
+const ageLog = logger('age');
 function age (timestamp) {
-  return Date.now() - new Date(timestamp * 1000).getTime();
+  const ts = new Date(timestamp * age.SECOND);
+  const difference = Date.now() - ts.getTime();
+  ageLog('received timestamp', timestamp, 'made date', ts.toISOString(), 'difference in minutes', difference / age.MINUTE);
+  return difference;
 }
 
 age.SECOND = 1000;

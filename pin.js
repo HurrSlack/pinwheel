@@ -9,13 +9,13 @@ var log = helpers.logger('Pin');
 
 var strategies = {
   message: function postText (item) {
-    if (helpers.age(item.ts) > helpers.age.ONE_DAY) {
-      throw new Error('The pinned message cannot be twote because it is older than one day.');
-    }
     var message = item && item.message;
     if (!message || !message.text || (typeof message.text !== 'string')) {
       throw Error('Message strategy cannot post passed object because it does not have a `message` ' +
                   'property with a `text` string:\n\n' + JSON.stringify(item, null, 2));
+    }
+    if (helpers.age(message.ts) > helpers.age.DAY) {
+      throw new Error('The pinned message cannot be twote because it is older than one day.');
     }
     log('asked to post text, trying cache');
     var twote = this._cache.get(message);
@@ -23,6 +23,7 @@ var strategies = {
     if (twote) {
       return log('already twote', message);
     }
+    log('approved to tweet', message);
     var text = message.text;
     if (text.length <= 140) {
       log('length <= 140, posting the following as text: ' + text);
