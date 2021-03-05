@@ -1,6 +1,7 @@
 {
   "author": "Professional Developers",
-  "name": "Pinwheel",
+  "name": "pinwheel",
+  "private": true,
   "description": "Post pinned tweets to slack",
   "repository": {
     "type": "git",
@@ -10,11 +11,12 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node app.js",
     "dev": "cross-env NODE_ENV=development node app.js",
-    "lint": "eslint .",
+    "lint": "prettier --write lib/ && eslint lib/",
     "test": "istanbul test _mocha -- -R spec",
     "postinstall": "node ./install-hooks.js"
   },
   "dependencies": {
+    "@slack/bolt": "^3.2.0",
     "@slack/client": "^3.5.1",
     "concat-stream": "^1.5.1",
     "cross-env": "^2.0.0",
@@ -26,16 +28,16 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
-    "eslint": "^3.1.1",
-    "eslint-config-semistandard": "^6.0.2",
-    "eslint-config-standard": "^5.3.5",
-    "eslint-plugin-promise": "^2.0.0",
-    "eslint-plugin-react": "^5.2.2",
-    "eslint-plugin-standard": "^2.0.0",
+    "eslint": "^7.21.0",
+    "eslint-config-prettier": "^8.1.0",
     "istanbul": "^0.4.4",
     "mocha": "^2.5.3",
     "nock": "^8.0.0",
+    "prettier": "2.2.1",
     "sinon": "^3.2.1"
   },
-  "license": "SEE LICENSE IN LICENSE"
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "node": "^14.16.0"
+  }
 }
