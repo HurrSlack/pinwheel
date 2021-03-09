@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>text-to-image test</title>
+  <link rel="stylesheet" style="text/css" href="/harness.css" />
+</head>
+
+<body class="bg-gray-900">
+  <div class="container flex flex-row-reverse flex-nowrap items-start justify-end p-4">
+    <div class="bg-black p-8 max-w-sm mx-8 border-gray-200 border-2 rounded-2xl">
+      <img src="<%= dataUri %>">
+    </div>
+    <form action="/">
+      <fieldset class="grid grid-cols-2 gap-4 align-baseline">
+        <% for (const [id, type = "text"] of fields) { %>
+          <label class="text-right text-yellow-200" for="<%= id %>"><%= id %></label>
+          <input type="<%= type %>" name="<%= id %>" id="<%= id %>" value="<%= query[id] %>">
+        <% } %>
+      </fieldset>
+      <input type="submit" name="Submit" />
+    </form>
+  </div>
+</body>
+
+</html>

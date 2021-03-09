@@ -10,7 +10,7 @@
   "version": "0.0.1",
   "scripts": {
     "start": "cross-env NODE_ENV=production node app.js",
-    "dev": "cross-env NODE_ENV=development node app.js",
+    "dev": "node lib/app.js",
     "lint": "prettier --write lib/ && eslint lib/",
     "test": "istanbul test _mocha -- -R spec",
     "postinstall": "node ./install-hooks.js"
@@ -24,17 +24,22 @@
     "lodash.assign": "^4.0.9",
     "lru-cache": "^4.1.1",
     "phantom": "^2.1.13",
+    "text-to-image": "^2.4.4",
     "twit": "^2.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/forms": "^0.2.1",
     "chai": "^3.5.0",
+    "ejs": "^3.1.6",
     "eslint": "^7.21.0",
     "eslint-config-prettier": "^8.1.0",
     "istanbul": "^0.4.4",
     "mocha": "^2.5.3",
     "nock": "^8.0.0",
+    "open": "^8.0.2",
     "prettier": "2.2.1",
-    "sinon": "^3.2.1"
+    "sinon": "^3.2.1",
+    "tailwindcss-cli": "^0.1.2"
   },
   "license": "SEE LICENSE IN LICENSE",
   "engines": {
