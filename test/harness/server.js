@@ -20,17 +20,18 @@ const fields = [
 const defaults = {
   text: "order corn",
   maxWidth: 360,
-  fontSize: 18,
+  fontSize: 20,
   fontWeight: "normal",
   fontFamily: "Helvetica",
   lineHeight: 24,
-  margin: 5,
+  margin: 25,
   textAlign: "left",
-  bgColor: "#333355",
-  textColor: "#e4fff3",
+  bgColor: "#1a1d21",
+  textColor: "#d1d2d3",
 };
 
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
 
 app.get("/", async (req, res) => {
   const query = { ...defaults, ...req.query };
