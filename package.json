@@ -10,6 +10,7 @@
   "version": "0.0.2",
   "scripts": {
     "start": "cross-env NODE_ENV=production node lib/server.js",
+    "auth-dev": "node scripts/get-dev-auth.js",
     "dev": "cross-env NODE_ENV=development node lib/server.js",
     "lint": "prettier --write {lib,scripts}/ && eslint {lib,scripts}/",
     "test": "echo No tests for v2 yet",
