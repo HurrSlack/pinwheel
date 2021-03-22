@@ -42,6 +42,7 @@ jspm_packages
 
 env_variables
 .env
+.env.*
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
