@@ -40,6 +40,9 @@ jspm_packages
 # vim swap files
 *.swp
 
+# IDE
+.vscode
+
 env_variables
 .env
 .env.*
