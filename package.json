@@ -12,6 +12,7 @@
     "start": "cross-env NODE_ENV=production node lib/server.js",
     "auth-dev": "node scripts/get-dev-auth.js",
     "dev": "cross-env NODE_ENV=development node lib/server.js",
+    "dev:external": "cross-env NODE_ENV=development node scripts/external-dev-server.js",
     "lint": "prettier --write {lib,scripts}/ && eslint {lib,scripts}/",
     "test": "echo No tests for v2 yet",
     "prepare": "node scripts/install-hooks.js"
@@ -27,6 +28,7 @@
     "chalk": "^4.1.0",
     "eslint": "^7.21.0",
     "eslint-config-prettier": "^8.1.0",
+    "ngrok": "^4.0.1",
     "prettier": "2.2.1"
   },
   "license": "SEE LICENSE IN LICENSE",
