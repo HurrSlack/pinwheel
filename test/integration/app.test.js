@@ -203,22 +203,30 @@ describe("reaction_added handling", () => {
       return ctx;
     }
     describe("tweets and saves reference", () => {
-      let app;
-      let ctx;
-      beforeEach(async () => {
-        app = await createApp(config);
-        ctx = pinnedMessage(app, "howdly doodly");
+      async function pinFlanders(who = "neighbor") {
+        const app = await createApp(config);
+        const ctx = pinnedMessage(app, `howdly doodly, ${who}ino`);
         await app._registeredHandlers["reaction_added"](ctx);
-      });
+        return { app, ctx };
+      }
       it("calls twitter api with message text", async () => {
+        const { ctx } = await pinFlanders("neighbor");
         expect(ctx.logger.error).not.toHaveBeenCalled();
         expect(TwitterClient).toHaveBeenCalled();
         const twitterClient = TwitterClient.mock.instances[0];
         expect(twitterClient.tweets.statusesUpdate).toHaveBeenCalledWith(
-          expect.objectContaining({ status: "howdly doodly" })
+          expect.objectContaining({ status: "howdly doodly, neighborino" })
+        );
+      });
+      it("decodes slack-specific html entities", async () => {
+        await pinFlanders("&lt;&amp;&gt;&lt;");
+        const twitterClient = TwitterClient.mock.instances[0];
+        expect(twitterClient.tweets.statusesUpdate).toHaveBeenCalledWith(
+          expect.objectContaining({ status: "howdly doodly, <&><ino" })
         );
       });
       it("stores to db", async () => {
+        const { app } = await pinFlanders("al pac");
         await expect(
           app.dbConnector.load({
             type: "message",
@@ -279,17 +287,33 @@ describe("reaction_added handling", () => {
       const app = await createApp(config);
       const ctx = pinnedMessage(app, "oh boy this is private");
       ctx.payload.item.channel = "private-message";
-      ctx.client.conversations.list = app.client.conversations.list = () => Promise.reject(new Error('wuh oh'));
+      ctx.client.conversations.list = app.client.conversations.list = () =>
+        Promise.reject(new Error("wuh oh"));
       await app._registeredHandlers["reaction_added"](ctx);
       expect(ctx.logger.error).toHaveBeenCalledWith(
         expect.stringMatching("wuh oh")
       );
     });
-    it("logs informatively if twitter fails", async () => {
+    it("logs informatively if twitter client throws a JS error", async () => {
       TwitterClient.mockImplementationOnce(() => ({
         tweets: {
           statusesUpdate: () => {
             throw new Error("fail whale");
+          },
+        },
+      }));
+      const app = await createApp(config);
+      const ctx = pinnedMessage(app, "woah");
+      await app._registeredHandlers["reaction_added"](ctx);
+      expect(ctx.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("fail whale")
+      );
+    });
+    it("logs informatively if twitter throws a JS error", async () => {
+      TwitterClient.mockImplementationOnce(() => ({
+        tweets: {
+          statusesUpdate: () => {
+            return Promise.reject({ errors: [{ message: "fail whale" }] });
           },
         },
       }));
