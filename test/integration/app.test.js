@@ -76,8 +76,8 @@ beforeEach(() => {
     db: {
       connectorType: "inmemory",
     },
-    reacji: {
-      toTriggerTweet: "test-emoji",
+    pinwheel: {
+      pinReacji: "test-emoji",
     },
     twitter: {},
   };
