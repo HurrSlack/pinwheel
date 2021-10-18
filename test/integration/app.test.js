@@ -1,7 +1,12 @@
 jest.mock("twitter-api-client", () => ({
   TwitterClient: jest.fn(function MockTwitterClient() {
     this.tweets = {
-      statusesUpdate: jest.fn().mockResolvedValue({ id_str: "123tweeet" }),
+      statusesUpdate: jest.fn().mockImplementation(async ({ status }) => {
+        if (status.includes("private")) {
+          throw new Error(`SHOULDNTA TWOTE THIS! "${status}"`);
+        }
+        return { id_str: "123tweeet" };
+      }),
       statusesDestroyById: jest.fn(),
     };
   }),
@@ -49,7 +54,31 @@ jest.mock("@slack/bolt", () => ({
         get: jest.fn(),
       },
       conversations: {
-        list: jest.fn(),
+        leave: jest.fn(),
+        list: jest.fn().mockResolvedValue({
+          channels: [
+            {
+              id: "channel1",
+              name: "channelone",
+              previous_names: ["old_channelone"],
+            },
+            {
+              id: "channel2",
+              name: "channeltwo",
+              previous_names: ["forbidden_channeltwo"],
+            },
+            {
+              id: "channel3",
+              name: "channelthree",
+              previous_names: [],
+            },
+            {
+              id: "forbidden_channel1",
+              name: "forbidden_channelone",
+              previous_names: [],
+            },
+          ],
+        }),
       },
       users: {
         list: jest.fn(),
@@ -78,6 +107,7 @@ beforeEach(() => {
     },
     pinwheel: {
       pinReacji: "test-emoji",
+      denyChannels: "forbidden_channelone,forbidden_channeltwo",
     },
     twitter: {},
   };
@@ -141,7 +171,7 @@ describe("reaction_added handling", () => {
         item: {
           type: "message",
           ts: "123456",
-          channel: "98765",
+          channel: "channel1",
         },
       },
     });
@@ -169,7 +199,7 @@ describe("reaction_added handling", () => {
     expect(TwitterClient).not.toHaveBeenCalled();
   });
   describe("handling regular chat messages", () => {
-    function pinnedMessage(app, text) {
+    function pinnedMessage(app, text, overrides = {}) {
       const ctx = createHandlerContext(app, {
         payload: {
           reaction: "test-emoji",
@@ -179,14 +209,7 @@ describe("reaction_added handling", () => {
             channel: "channel1",
           },
         },
-      });
-      ctx.client.conversations.list.mockResolvedValueOnce({
-        channels: [
-          {
-            id: "channel1",
-            name: "test-channel",
-          },
-        ],
+        ...overrides,
       });
       ctx.client.reactions.get.mockResolvedValueOnce({
         reactions: [
@@ -274,13 +297,14 @@ describe("reaction_added handling", () => {
         expect.stringMatching("too long")
       );
     });
-    it("won't tweet a message from an unrecognized channel", async () => {
+    it("won't tweet a message from a denied channel", async () => {
       const app = await createApp(config);
       const ctx = pinnedMessage(app, "oh boy this is private");
-      ctx.payload.item.channel = "private-message";
+      ctx.payload.item.channel = "forbidden_channel1";
       await app._registeredHandlers["reaction_added"](ctx);
+      expect(TwitterClient).not.toHaveBeenCalled();
       expect(ctx.logger.error).toHaveBeenCalledWith(
-        expect.stringMatching("channel")
+        expect.stringMatching("not supposed")
       );
     });
     it("won't tweet if it can't verify recognized channels", async () => {
@@ -418,7 +442,9 @@ describe("reaction_removed handling", () => {
 
 function createHandlerContext(app, overrides) {
   return {
-    context: {},
+    context: {
+      botUserId: "fake-bot-user-id",
+    },
     client: app.client,
     logger: {
       warn: jest.fn(),
@@ -426,6 +452,7 @@ function createHandlerContext(app, overrides) {
       info: jest.fn(),
       debug: jest.fn(),
     },
+    say: jest.fn(),
     ...overrides,
   };
 }
