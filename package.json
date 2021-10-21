@@ -13,7 +13,7 @@
     "auth-dev": "node scripts/get-dev-auth.js",
     "dev": "cross-env NODE_ENV=development node lib/server.js",
     "dev:external": "cross-env NODE_ENV=development node scripts/external-dev-server.js",
-    "lint": "prettier --write {lib,scripts}/ && eslint {lib,scripts}/",
+    "lint": "prettier --write {lib,scripts,test}/ && eslint {lib,scripts,test}/",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
     "prepare": "node scripts/install-hooks.js"

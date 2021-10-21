@@ -50,6 +50,12 @@ jest.mock("@slack/bolt", () => ({
         });
     });
     this.client = {
+      auth: {
+        test: jest.fn().mockResolvedValue({
+          botId: "bot-id",
+          botUserId: "bot-user-id",
+        }),
+      },
       reactions: {
         get: jest.fn(),
       },
@@ -65,7 +71,7 @@ jest.mock("@slack/bolt", () => ({
             {
               id: "channel2",
               name: "channeltwo",
-              previous_names: ["forbidden_channeltwo"],
+              previous_names: ["deniedchanneltwo"],
             },
             {
               id: "channel3",
@@ -73,8 +79,8 @@ jest.mock("@slack/bolt", () => ({
               previous_names: [],
             },
             {
-              id: "forbidden_channel1",
-              name: "forbidden_channelone",
+              id: "deniedchannel1",
+              name: "deniedchannelone",
               previous_names: [],
             },
           ],
@@ -107,7 +113,7 @@ beforeEach(() => {
     },
     pinwheel: {
       pinReacji: "test-emoji",
-      denyChannels: "forbidden_channelone,forbidden_channeltwo",
+      denyChannels: "deniedchannelone,deniedchanneltwo",
     },
     twitter: {},
   };
@@ -126,9 +132,12 @@ describe("bolt app factory", () => {
     await createApp(config, { NODE_ENV: "production" });
     expect(SlackApp.mock.calls[0][0].logLevel).not.toBe(LogLevel.DEBUG);
   });
-  it("registers an error handler, reaction_added handler, and reaction_removed handler", async () => {
+  it("registers a hello handler, an error handler, member_joined_channel handler, reaction_added handler, and reaction_removed handler", async () => {
     const app = await createApp(config);
     expect(typeof app._errorHandler).toBe("function");
+    expect(app._registeredHandlers).toHaveProperty("hello");
+    expect(app._registeredHandlers).toHaveProperty("member_joined_channel");
+    expect(app._registeredHandlers).toHaveProperty("reaction_added");
     expect(app._registeredHandlers).toHaveProperty("reaction_added");
     expect(app._registeredHandlers).toHaveProperty("reaction_removed");
   });
@@ -152,6 +161,17 @@ describe("bolt app factory", () => {
       config.db.connectorType = "index cards";
       await expect(() => createApp(config)).rejects.toThrowError("index cards");
     });
+  });
+});
+describe("app setup", () => {
+  it("logs bot user info", async () => {
+    const app = await createApp(config);
+    const ctx = createHandlerContext(app);
+    await app._registeredHandlers["hello"](ctx);
+    expect(ctx.logger.info).toHaveBeenCalledWith(
+      "it's-a me, ",
+      expect.objectContaining({ botUserId: "bot-user-id" })
+    );
   });
 });
 describe("error handling", () => {
@@ -300,7 +320,7 @@ describe("reaction_added handling", () => {
     it("won't tweet a message from a denied channel", async () => {
       const app = await createApp(config);
       const ctx = pinnedMessage(app, "oh boy this is private");
-      ctx.payload.item.channel = "forbidden_channel1";
+      ctx.payload.item.channel = "deniedchannel1";
       await app._registeredHandlers["reaction_added"](ctx);
       expect(TwitterClient).not.toHaveBeenCalled();
       expect(ctx.logger.error).toHaveBeenCalledWith(
@@ -359,6 +379,54 @@ describe("reaction_added handling", () => {
         expect.stringContaining("no database")
       );
     });
+  });
+});
+
+describe("member_joined_channel handling", () => {
+  it("ignores when it isnt the one joining", async () => {
+    const app = await createApp(config);
+    const ctx = createHandlerContext(app, {
+      payload: {
+        channel: "deniedchannel1",
+        user: "some-nobody",
+      },
+    });
+    await app._registeredHandlers["member_joined_channel"](ctx);
+    expect(ctx.client.conversations.leave).not.toHaveBeenCalled();
+  });
+  it("leaves if it joined a denied channel", async () => {
+    const app = await createApp(config);
+    const ctx = createHandlerContext(app, {
+      payload: {
+        channel: "deniedchannel1",
+        user: "bot-user-id",
+      },
+    });
+    await app._registeredHandlers["member_joined_channel"](ctx);
+    expect(ctx.client.conversations.leave).toHaveBeenCalled();
+  });
+  it("loads denied channels out of config, handles if unset", async () => {
+    config.pinwheel.denyChannels = '';
+    const app = await createApp(config);
+    const ctx = createHandlerContext(app, {
+      payload: {
+        channel: "deniedchannel1",
+        user: "bot-user-id",
+      },
+    });
+    await app._registeredHandlers["member_joined_channel"](ctx);
+    expect(ctx.client.conversations.leave).not.toHaveBeenCalled();
+  });
+  it("stays if the channel it joined is not denied", async () => {
+    const app = await createApp(config);
+    const ctx = createHandlerContext(app, {
+      payload: {
+        channel: "party",
+        user: "bot-user-id",
+      },
+    });
+    await app._registeredHandlers["member_joined_channel"](ctx);
+    expect(ctx.client.conversations.leave).not.toHaveBeenCalled();
   });
 });
 
@@ -443,7 +511,8 @@ describe("reaction_removed handling", () => {
 function createHandlerContext(app, overrides) {
   return {
     context: {
-      botUserId: "fake-bot-user-id",
+      botId: "bot-id",
+      botUserId: "bot-user-id",
     },
     client: app.client,
     logger: {
