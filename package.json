@@ -9,10 +9,9 @@
   },
   "version": "0.0.2",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node lib/server.js",
-    "auth-dev": "node scripts/get-dev-auth.js",
-    "dev": "cross-env NODE_ENV=development node lib/server.js",
-    "dev:external": "cross-env NODE_ENV=development node scripts/external-dev-server.js",
+    "start": "NODE_ENV=production node lib/server.js",
+    "dev": "NODE_ENV=development node lib/server.js",
+    "dev:external": "NODE_ENV=development SLACK_SOCKET_MODE='' node scripts/external-dev-server.js",
     "lint": "prettier --write {lib,scripts,test}/ && eslint {lib,scripts,test}/",
     "test": "jest --coverage",
     "test:watch": "jest --coverage --watch",
@@ -21,9 +20,7 @@
   "dependencies": {
     "@slack/bolt": "^3.2.0",
     "camelspace": "^2.0.0",
-    "cross-env": "^2.0.0",
-    "dotenv": "^2.0.0",
-    "firebase-admin": "^9.6.0",
+    "dotenv": "^10.0.0",
     "mysql2": "^2.3.2",
     "twitter-api-client": "^1.3.2"
   },
