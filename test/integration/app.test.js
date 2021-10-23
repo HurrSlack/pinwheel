@@ -406,7 +406,7 @@ describe("member_joined_channel handling", () => {
     expect(ctx.client.conversations.leave).toHaveBeenCalled();
   });
   it("loads denied channels out of config, handles if unset", async () => {
-    config.pinwheel.denyChannels = '';
+    config.pinwheel.denyChannels = "";
     const app = await createApp(config);
     const ctx = createHandlerContext(app, {
       payload: {
